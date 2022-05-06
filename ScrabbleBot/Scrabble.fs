@@ -38,22 +38,45 @@ module State =
     // Currently, it only keeps track of your hand, your player numer, your board, and your dictionary,
     // but it could, potentially, keep track of other useful
     // information, such as number of players, player turn, etc.
+    open ScrabbleUtil
 
     type state = {
         board           : Parser.board
         dict            : ScrabbleUtil.Dictionary.Dict
         playerNumber    : uint32
         hand            : MultiSet.MultiSet<uint32>
+
+        placedTiles     : Map<coord, char>
     }
 
-    let mkState b d pn h = {board = b; dict = d;  playerNumber = pn; hand = h;}
+    type move = (coord * (uint32 * (char * int))) list
+    // coord, (id, (letter, points)) list
+    
+    type newPieces = (uint32 * uint32) list
+    // (id, amount) list
+
+    let mkState b d pn pt h = {board = b; dict = d;  playerNumber = pn; placedTiles = pt; hand = h}
 
     let board st           = st.board
     let dict st            = st.dict
     let playerNumber st    = st.playerNumber
     let hand st            = st.hand
 
-    
+
+    let removePieces (ms : move) (st: state) : state = 
+        List.fold (fun acc (_, (id, (_, _))) -> 
+            MultiSet.removeSingle id acc
+        ) st.hand ms |> mkState st.board st.dict st.playerNumber st.placedTiles
+
+    let addPieces (pieces: newPieces) (st: state) = 
+        List.fold (fun acc (id, amount) ->
+            MultiSet.add id amount acc
+        ) st.hand pieces |> mkState st.board st.dict st.playerNumber st.placedTiles
+
+    let updateBoard (ms : move) (st: state) = 
+        List.fold (fun acc (coord , (_ , (char , _))) -> 
+            Map.add coord char acc
+        ) st.placedTiles ms |> mkState st.board st.dict st.playerNumber st.hand
 
 module Scrabble =
     open System.Threading
@@ -65,38 +88,43 @@ module Scrabble =
         if not first move - find a tile on the board and make a word from the playerhand that contains the tile(s)
     *)
 
-    let firstMove (st: State.state) (pieces: Map<uint32, tile>) = 
-        let rec aux bestword =
-            MultiSet.fold    
+    let rec firstMove  (*coord *) (st: State.state) (pieces: Map<uint32, tile>) customHand =
+        
+        // match coord board with
+        // | Some c -> 
+        // | None -> 
 
-    // let firstMove (st: State.state) (pieces : Map<uint32, tile>) =
-    //     let rec aux curHand curDict (currentWord: string) (bestword: string) = 
-    //         debugPrint (sprintf "Current Word: %A - Best Word %A\n" currentWord bestword)
-    //         MultiSet.fold (fun _ x _ ->
-    //             (Set.fold (fun _ (c, _) -> 
-    //                 match Dictionary.step c curDict with
-    //                 | None -> 
-    //                     debugPrint (sprintf "No word found for %A - bestword %A\n" c bestword)
-    //                     bestword
-    //                 | Some (isWord, newDict) -> 
-    //                     let newHand = MultiSet.removeSingle x curHand
-    //                     let newWord = currentWord + (string c)
-    //                     if isWord && newWord.Length > bestword.Length then
-    //                         debugPrint (sprintf "New Best Word: %A\n" newWord)
-    //                         aux newHand newDict newWord newWord
-    //                     else
-    //                         debugPrint (sprintf "bestword in else %A\n" bestword)
-    //                         aux newHand newDict newWord bestword
-    //                 ) "" (Map.find x pieces)
-    //             )
-    //             debugPrint (sprintf "bestword in fold %A\n" bestword)
-    //         ) () curHand
-    //         bestword
-    //     aux st.hand st.dict "" ""
+        
+        let rec aux hand dict currentWord (bestword: string) = 
+            debugPrint (sprintf "HANDSIZ: %A\n" (MultiSet.size hand))
+            if MultiSet.isEmpty hand then 
+                bestword
+            else 
+                MultiSet.fold (fun acc x n -> 
+                    let leftovers = MultiSet.removeSingle x hand
+                    Set.fold (fun acc2 (c, _) -> 
+                        let word = currentWord + (string c)
+                        match Dictionary.step c dict with
+                        | Some (isWord, newDict) -> 
+                            if isWord then
+                                debugPrint (sprintf "word - %A, isword %A - char %A\n" word isWord c)
+                                // debugPrint (sprintf "word - %A\n" word)
+                                aux leftovers newDict word word
+                            else
+                                debugPrint (sprintf "word - %A, isword %A - char %A\n" word isWord c)
+                                aux leftovers newDict word bestword
+                        | None ->
+                            bestword
+                    ) "" (Map.find x pieces)
+                ) "" hand
+        aux customHand st.dict "" ""                
+
+    
 
     let nextMove (st : State.state) pieces = 
         // check if it is the first move of the game
-        let first = firstMove st pieces
+        let customHand = MultiSet.empty |> MultiSet.addSingle 8u |> MultiSet.addSingle 9u |> MultiSet.addSingle 20u
+        let first = firstMove st pieces customHand
         debugPrint (sprintf "stringhand = %A" first)
         ""  
         
@@ -123,6 +151,14 @@ module Scrabble =
             | RCM (CMPlaySuccess(ms, points, newPieces)) ->
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
                 //let st' = {st.board, st.dict, st.playerNumber, st.hand, st.numberOfPlayers, st.turnCount} // This state needs to be updated
+                
+                // remove ms from hand
+                // add newPieces to hand
+                let st' = State.removePieces ms st |> State.addPieces newPieces
+
+                // update board
+
+                
                 aux st
             | RCM (CMPlayed (pid, ms, points)) ->
                 (* Successful play by other player. Update your state *)
@@ -162,5 +198,6 @@ module Scrabble =
         let board = Parser.mkBoard boardP
                   
         let handSet = List.fold (fun acc (x, k) -> MultiSet.add x k acc) MultiSet.empty hand
+        let (placedTiles: Map<ScrabbleUtil.coord, char>) = Map.empty
 
-        fun () -> playGame cstream tiles (State.mkState board dict playerNumber handSet)
+        fun () -> playGame cstream tiles (State.mkState board dict playerNumber placedTiles handSet)

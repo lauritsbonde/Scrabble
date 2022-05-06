@@ -20,7 +20,7 @@
 
     let remove a n (Ms map) =
         let old = Map.tryFind a map |> Option.defaultValue 0u
-        if((int old) - (int n) < 0) then
+        if((int old) - (int n) <= 0) then
             Ms (map.Remove a)
         else
             Ms (map.Add (a, (old - n)))
