@@ -76,7 +76,7 @@ module State =
     let updateBoard (ms : move) (st: state) = 
         List.fold (fun acc (coord , (_ , (char , _))) -> 
             Map.add coord char acc
-        ) st.placedTiles ms |> mkState st.board st.dict st.playerNumber st.hand
+        ) st.placedTiles ms |> mkState st.board st.dict st.playerNumber <| st.hand
 
 module Scrabble =
     open System.Threading
@@ -87,44 +87,50 @@ module Scrabble =
         if first move - find a word from player hand
         if not first move - find a tile on the board and make a word from the playerhand that contains the tile(s)
     *)
+    let findLongestWord wordSet =
+        Set.fold (fun acc word -> 
+            match String.length word > String.length acc with
+            | true  -> word
+            | false -> acc
+         ) "" wordSet
 
-    let rec firstMove  (*coord *) (st: State.state) (pieces: Map<uint32, tile>) customHand =
-        
-        // match coord board with
+    let rec move (coord: ScrabbleUtil.coord) (st: State.state) (pieces: Map<uint32, tile>) customHand =    
+        let rec aux dict wordList currentWord currentHand =
+            MultiSet.fold (fun acc id _ -> 
+                // create a multiset of the remaining pieces in the hand
+                let newHand = MultiSet.removeSingle id currentHand
+                Set.union acc (Set.fold (fun acc2 (c, _) -> 
+                    let newWord = currentWord + (string c)
+                    match Dictionary.step c dict with
+                    | Some (isWord, newDict) ->
+                        // if the current word is a word, add it to the list of words
+                        if isWord then
+                            Set.union acc2 (aux newDict (Set.add newWord acc) newWord newHand)
+                        else 
+                            // if the current word is not a word, continue with next letter from hand
+                            Set.union acc2 (aux newDict acc newWord newHand)
+                    | None ->
+                        // if the step is not possible, return the found words
+                        acc2
+                ) Set.empty (Map.find id pieces)) 
+            ) wordList currentHand
+            
+
+        // match Map.tryFind coord st.placedTiles with
         // | Some c -> 
-        // | None -> 
-
-        
-        let rec aux hand dict currentWord (bestword: string) = 
-            debugPrint (sprintf "HANDSIZ: %A\n" (MultiSet.size hand))
-            if MultiSet.isEmpty hand then 
-                bestword
-            else 
-                MultiSet.fold (fun acc x n -> 
-                    let leftovers = MultiSet.removeSingle x hand
-                    Set.fold (fun acc2 (c, _) -> 
-                        let word = currentWord + (string c)
-                        match Dictionary.step c dict with
-                        | Some (isWord, newDict) -> 
-                            if isWord then
-                                debugPrint (sprintf "word - %A, isword %A - char %A\n" word isWord c)
-                                // debugPrint (sprintf "word - %A\n" word)
-                                aux leftovers newDict word word
-                            else
-                                debugPrint (sprintf "word - %A, isword %A - char %A\n" word isWord c)
-                                aux leftovers newDict word bestword
-                        | None ->
-                            bestword
-                    ) "" (Map.find x pieces)
-                ) "" hand
-        aux customHand st.dict "" ""                
-
+        //     //make move from this place
+        //     List.empty
+        // | None ->
+        //     // check for starting board
+        //    // if not starting board - go to next coord
+        findLongestWord (aux st.dict Set.empty "" st.hand)
     
 
     let nextMove (st : State.state) pieces = 
         // check if it is the first move of the game
         let customHand = MultiSet.empty |> MultiSet.addSingle 8u |> MultiSet.addSingle 9u |> MultiSet.addSingle 20u
-        let first = firstMove st pieces customHand
+        let first = move st.board.center st pieces customHand
+        debugPrint (sprintf "First length: %A\n" (String.length first))
         debugPrint (sprintf "stringhand = %A" first)
         ""  
         
@@ -154,16 +160,14 @@ module Scrabble =
                 
                 // remove ms from hand
                 // add newPieces to hand
-                let st' = State.removePieces ms st |> State.addPieces newPieces
-
                 // update board
-
-                
-                aux st
+                let st' = State.removePieces ms st |> State.addPieces newPieces |> State.updateBoard ms
+                aux st'
             | RCM (CMPlayed (pid, ms, points)) ->
                 (* Successful play by other player. Update your state *)
                 //let st' = {st.board, st.dict, st.playerNumber, st.hand, st.numberOfPlayers, st.turnCount} // This state needs to be updated
-                aux st
+                let st' = State.updateBoard ms st
+                aux st'
             | RCM (CMPlayFailed (pid, ms)) ->
                 (* Failed play. Update your state *)
                 let st' = st // This state needs to be updated
