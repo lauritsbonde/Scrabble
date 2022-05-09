@@ -46,7 +46,7 @@ module State =
         playerNumber    : uint32
         hand            : MultiSet.MultiSet<uint32>
 
-        placedTiles     : Map<coord, char>
+        placedTiles     : Map<coord, uint32>
     }
 
     type move = (coord * (uint32 * (char * int))) list
@@ -74,8 +74,8 @@ module State =
         ) st.hand pieces |> mkState st.board st.dict st.playerNumber st.placedTiles
 
     let updateBoard (ms : move) (st: state) = 
-        List.fold (fun acc (coord , (_ , (char , _))) -> 
-            Map.add coord char acc
+        List.fold (fun acc (coord , (charId , (_ , _))) -> 
+            Map.add coord charId acc
         ) st.placedTiles ms |> mkState st.board st.dict st.playerNumber <| st.hand
 
 module Scrabble =
@@ -87,52 +87,71 @@ module Scrabble =
         if first move - find a word from player hand
         if not first move - find a tile on the board and make a word from the playerhand that contains the tile(s)
     *)
-    let findLongestWord wordSet =
-        Set.fold (fun acc word -> 
-            match String.length word > String.length acc with
-            | true  -> word
+    let findLongestWord (possibleMoves: List<State.move>) =
+        List.fold (fun acc move -> 
+            match List.length move > List.length acc with
+            | true  -> move
             | false -> acc
-         ) "" wordSet
+        ) List.empty possibleMoves
 
-    let rec move (coord: ScrabbleUtil.coord) (st: State.state) (pieces: Map<uint32, tile>) customHand =    
-        let rec aux dict wordList currentWord currentHand =
+    let findMove (coord: ScrabbleUtil.coord) (st: State.state) (pieces: Map<uint32, tile>) customHand =
+
+        let rec move coord dict customHand currentHand (currentMove: State.move) (possibleMoves : List<State.move>) =
+            let (x, y) = coord
+            let nextCoord = (x+1, y)
+            match Map.tryFind coord st.placedTiles with
+            | Some id -> 
+                //TODO: we can get the point from this as well and use it in newMove
+                let c = (char (Set.fold (fun acc x -> 
+                        acc + (string x)
+                    ) "" (Map.find id pieces)))
+                let newMove = currentMove @ [coord, (id, (c, 0))]
+                
+                match Dictionary.step c dict with
+                | Some (isWord, newDict) -> 
+                    if isWord then
+                        let newPossibleMoves = newMove :: possibleMoves
+                        move nextCoord newDict customHand currentHand newMove newPossibleMoves
+                    else 
+                        move nextCoord newDict customHand currentHand newMove possibleMoves
+                | None -> possibleMoves
+            | None -> aux coord dict customHand currentHand currentMove possibleMoves
+
+        and aux coord dict customHand currentHand currentMove possibleMoves =
             MultiSet.fold (fun acc id _ -> 
                 // create a multiset of the remaining pieces in the hand
                 let newHand = MultiSet.removeSingle id currentHand
-                Set.union acc (Set.fold (fun acc2 (c, _) -> 
-                    let newWord = currentWord + (string c)
+                let (x,y) = coord 
+                let newCoord = (x+1,y)
+                acc @ Set.fold (fun acc2 (c, p) -> 
+                    let newMove = currentMove @ [coord, ((id), (c, p))]
                     match Dictionary.step c dict with
                     | Some (isWord, newDict) ->
-                        // if the current word is a word, add it to the list of words
                         if isWord then
-                            Set.union acc2 (aux newDict (Set.add newWord acc) newWord newHand)
-                        else 
-                            // if the current word is not a word, continue with next letter from hand
-                            Set.union acc2 (aux newDict acc newWord newHand)
-                    | None ->
-                        // if the step is not possible, return the found words
-                        acc2
-                ) Set.empty (Map.find id pieces)) 
-            ) wordList currentHand
+                            let newPossibleMoves = newMove :: possibleMoves
+                            acc2 @ move newCoord newDict customHand newHand newMove newPossibleMoves
+                        else
+                            acc2 @ move newCoord newDict customHand newHand newMove possibleMoves
+                    | None -> acc2
+                ) List.empty (Map.find id pieces)
+            ) possibleMoves currentHand
             
-
-        // match Map.tryFind coord st.placedTiles with
-        // | Some c -> 
-        //     //make move from this place
-        //     List.empty
-        // | None ->
-        //     // check for starting board
-        //    // if not starting board - go to next coord
-        findLongestWord (aux st.dict Set.empty "" st.hand)
+        findLongestWord (move coord st.dict customHand st.hand List.empty List.empty)
     
+    let stringMove move =
+        List.fold(fun acc ((x, y), (id, (char, point))) -> 
+            $"{acc} {x} {y} {id}{char}{point}"
+        ) "" move
 
     let nextMove (st : State.state) pieces = 
         // check if it is the first move of the game
         let customHand = MultiSet.empty |> MultiSet.addSingle 8u |> MultiSet.addSingle 9u |> MultiSet.addSingle 20u
-        let first = move st.board.center st pieces customHand
-        debugPrint (sprintf "First length: %A\n" (String.length first))
-        debugPrint (sprintf "stringhand = %A" first)
-        ""  
+        let first = findMove st.board.center st pieces customHand
+        debugPrint (sprintf "First length: %A\n" (List.length first))
+        debugPrint (sprintf "stringhand = %A\n" first)
+        let move = stringMove first
+        debugPrint (sprintf "MOVE: %A" move)
+        move
         
 
     let playGame cstream pieces (st : State.state) =
@@ -202,6 +221,6 @@ module Scrabble =
         let board = Parser.mkBoard boardP
                   
         let handSet = List.fold (fun acc (x, k) -> MultiSet.add x k acc) MultiSet.empty hand
-        let (placedTiles: Map<ScrabbleUtil.coord, char>) = Map.empty
+        let (placedTiles: Map<ScrabbleUtil.coord, uint32>) = Map.empty
 
         fun () -> playGame cstream tiles (State.mkState board dict playerNumber placedTiles handSet)

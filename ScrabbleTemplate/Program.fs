@@ -56,7 +56,7 @@ let main argv =
         time (fun () -> ScrabbleUtil.Dictionary.mkDict words dictAPI)
         
     let players    
-        = [("AlphaScrabZero", dictionary, AlphaScrabZero.Scrabble.startGame)]
+        = [("AlphaScrabZero", dictionary, AlphaScrabZero.Scrabble.startGame); ("OxyphenButazone", dictionary, Oxyphenbutazone.Scrabble.startGame)]
 
     // let players = spawnMultiples "OxyphenButazone" dictionary Oxyphenbutazone.Scrabble.startGame 4
 
