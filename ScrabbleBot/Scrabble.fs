@@ -34,6 +34,7 @@ module RegEx =
         MultiSet.fold (fun _ x i -> forcePrint (sprintf "%d -> (%A, %d)\n" x (Map.find x pieces) i)) ()
 
 module State = 
+    open StateMonad
     // Make sure to keep your state localised in this module. It makes your life a whole lot easier.
     // Currently, it only keeps track of your hand, your player numer, your board, and your dictionary,
     // but it could, potentially, keep track of other useful
@@ -46,16 +47,23 @@ module State =
         playerNumber    : uint32
         hand            : MultiSet.MultiSet<uint32>
 
-        placedTiles     : Map<coord, uint32>
+        playerTurn      : uint32
+        numPlayers      : uint32 // total amount of players in the game
+
+        placedTiles     : Map<coord, char>
     }
 
     type move = (coord * (uint32 * (char * int))) list
+    type dir = Right | Down
+    let next (x, y) = function
+        | Right -> (x+1, y)
+        | Down -> (x, y+1)
     // coord, (id, (letter, points)) list
     
     type newPieces = (uint32 * uint32) list
     // (id, amount) list
 
-    let mkState b d pn pt h = {board = b; dict = d;  playerNumber = pn; placedTiles = pt; hand = h}
+    let mkState b d pn pt h plt np = {board = b; dict = d;  playerNumber = pn; placedTiles = pt; hand = h; playerTurn = plt; numPlayers = np}
 
     let board st           = st.board
     let dict st            = st.dict
@@ -66,18 +74,30 @@ module State =
     let removePieces (ms : move) (st: state) : state = 
         List.fold (fun acc (_, (id, (_, _))) -> 
             MultiSet.removeSingle id acc
-        ) st.hand ms |> mkState st.board st.dict st.playerNumber st.placedTiles
+        ) st.hand ms |> mkState st.board st.dict st.playerNumber st.placedTiles <| st.playerTurn <| st.numPlayers
 
     let addPieces (pieces: newPieces) (st: state) = 
         List.fold (fun acc (id, amount) ->
             MultiSet.add id amount acc
-        ) st.hand pieces |> mkState st.board st.dict st.playerNumber st.placedTiles
+        ) st.hand pieces |> mkState st.board st.dict st.playerNumber st.placedTiles <| st.playerTurn <| st.numPlayers
 
     let updateBoard (ms : move) (st: state) = 
-        List.fold (fun acc (coord , (charId , (_ , _))) -> 
-            Map.add coord charId acc
-        ) st.placedTiles ms |> mkState st.board st.dict st.playerNumber <| st.hand
+        List.fold (fun acc (coord , (_ , (char , _))) -> 
+            Map.add coord char acc
+        ) st.placedTiles ms |> mkState st.board st.dict st.playerNumber <| st.hand <| st.playerTurn <| st.numPlayers
 
+    let updatePlayerTurn (st: state) = 
+         mkState st.board st.dict st.playerNumber st.placedTiles st.hand ((st.playerTurn % st.numPlayers) + 1u) st.numPlayers
+
+    let isCoordOnBoard st (x,y) =
+        //TODO figure out how to get the boardsize and use that instead of 7
+        let boardSize = 7
+        if x <= boardSize && x >= -boardSize && y >= -boardSize && y <= boardSize then
+            true
+        else
+            false
+        
+    
 module Scrabble =
     open System.Threading
 
@@ -94,49 +114,166 @@ module Scrabble =
             | false -> acc
         ) List.empty possibleMoves
 
-    let findMove (coord: ScrabbleUtil.coord) (st: State.state) (pieces: Map<uint32, tile>) customHand =
+    let checkNoSurroundingTiles (x,y) dir (st: State.state) =
+        if State.isCoordOnBoard st (x,y) then
+            if dir = State.Right then
+                match Map.tryFind (x, y+1) st.placedTiles with
+                    | Some _ -> false
+                    | None -> 
+                        match Map.tryFind (x, y-1) st.placedTiles with
+                        | Some _ -> false
+                        | None -> 
+                            match Map.tryFind (x+1, y) st.placedTiles with
+                            | Some _ -> false
+                            | None   -> true
+            else
+                match Map.tryFind (x+1, y) st.placedTiles with
+                | Some _ -> false
+                | None -> 
+                    match Map.tryFind (x-1, y) st.placedTiles with
+                    | Some _ -> false
+                    | None -> 
+                        match Map.tryFind (x, y+1) st.placedTiles with
+                        | Some _ -> false
+                        | None   -> true
+        else 
+            false
 
-        let rec move coord dict customHand currentHand (currentMove: State.move) (possibleMoves : List<State.move>) =
-            let (x, y) = coord
-            let nextCoord = (x+1, y)
+    let checkValidStartField (x,y) (st: State.state) dir = 
+        if State.isCoordOnBoard st (x,y) then
+            if dir = State.Right then
+                    match Map.tryFind (x-1, y) st.placedTiles with
+                    | Some c -> 
+                        // debugPrint (sprintf "found %A at coord: %A x-1 right\n" c (x,y))
+                        false
+                    | None   -> true
+                        // match Map.tryFind (x, y-1) st.placedTiles with
+                        //     | Some c -> 
+                        //         // debugPrint (sprintf "found %A at y-1 right\n" c)
+                        //         false
+                        //     | None -> 
+                        //         match Map.tryFind (x, y+1) st.placedTiles with
+                        //         | Some c -> 
+                        //             // debugPrint (sprintf "found %A at y+1 right\n" c)
+                        //             false
+                        //         | None -> 
+                        //             // debugPrint "okay right \n"
+                        //             true
+                                
+            else if dir = State.Down then
+                match Map.tryFind (x, y-1) st.placedTiles with
+                    | Some c -> 
+                        // debugPrint (sprintf "found %A at y-1 down\n" c)
+                        false
+                    | None   -> true
+                        // match Map.tryFind (x-1, y) st.placedTiles with
+                        //     | Some c -> 
+                        //         // debugPrint (sprintf "found %A at c-1 down\n" c)
+                        //         false
+                        //     | None -> true
+                        //         match Map.tryFind (x+1, y) st.placedTiles with
+                        //         | Some c -> 
+                        //             // debugPrint (sprintf "found %A at x+1 down\n" c)
+                        //             false
+                        //         | None -> 
+                        //             // debugPrint "okay down \n"
+                        //             true
+            else 
+                false
+        else 
+            false
+
+    let findMove (coords: List<ScrabbleUtil.coord>) (st: State.state) (pieces: Map<uint32, tile>) =
+        debugPrint "MOVING \n"
+        let rec move coord dir dict currentHand currentMove possibleMoves =
+            let nextCoord = State.next coord dir
+            //debugPrint (sprintf "nexCoord: %A\n" nextCoord)
             match Map.tryFind coord st.placedTiles with
-            | Some id -> 
-                //TODO: we can get the point from this as well and use it in newMove
-                let c = (char (Set.fold (fun acc x -> 
-                        acc + (string x)
-                    ) "" (Map.find id pieces)))
-                let newMove = currentMove @ [coord, (id, (c, 0))]
-                
+            | Some c -> 
                 match Dictionary.step c dict with
                 | Some (isWord, newDict) -> 
                     if isWord then
-                        let newPossibleMoves = newMove :: possibleMoves
-                        move nextCoord newDict customHand currentHand newMove newPossibleMoves
-                    else 
-                        move nextCoord newDict customHand currentHand newMove possibleMoves
-                | None -> possibleMoves
-            | None -> aux coord dict customHand currentHand currentMove possibleMoves
-
-        and aux coord dict customHand currentHand currentMove possibleMoves =
-            MultiSet.fold (fun acc id _ -> 
-                // create a multiset of the remaining pieces in the hand
-                let newHand = MultiSet.removeSingle id currentHand
-                let (x,y) = coord 
-                let newCoord = (x+1,y)
-                acc @ Set.fold (fun acc2 (c, p) -> 
-                    let newMove = currentMove @ [coord, ((id), (c, p))]
-                    match Dictionary.step c dict with
-                    | Some (isWord, newDict) ->
-                        if isWord then
-                            let newPossibleMoves = newMove :: possibleMoves
-                            acc2 @ move newCoord newDict customHand newHand newMove newPossibleMoves
+                        if List.length currentMove > 0 then
+                            let newPossibleMoves = currentMove :: possibleMoves
+                            move nextCoord dir newDict currentHand currentMove newPossibleMoves
                         else
-                            acc2 @ move newCoord newDict customHand newHand newMove possibleMoves
-                    | None -> acc2
-                ) List.empty (Map.find id pieces)
-            ) possibleMoves currentHand
-            
-        findLongestWord (move coord st.dict customHand st.hand List.empty List.empty)
+                            move nextCoord dir newDict currentHand currentMove possibleMoves
+                    else 
+                        move nextCoord dir newDict currentHand currentMove possibleMoves
+                | None -> possibleMoves
+            | None -> aux coord dir dict currentHand currentMove possibleMoves
+
+        and aux coord dir dict currentHand currentMove possibleMoves =
+            let newCoord = State.next coord dir
+            // check the tiles in the opposite direction - if there are some drop the field
+            if checkNoSurroundingTiles coord dir st then
+                MultiSet.fold (fun acc id _ -> 
+                    // create a multiset of the remaining pieces in the hand
+                    let newHand = MultiSet.removeSingle id currentHand
+                    acc @ Set.fold (fun acc2 (c, p) -> 
+                        let newMove = currentMove @ [coord, ((id), (c, p))]
+                        match Dictionary.step c dict with
+                        | Some (isWord, newDict) ->
+                            if isWord then
+                                let newPossibleMoves = newMove :: possibleMoves
+                                acc2 @ move newCoord dir newDict newHand newMove newPossibleMoves
+                            else
+                                acc2 @ move newCoord dir newDict newHand newMove possibleMoves
+                        | None -> acc2
+                    ) List.empty (Map.find id pieces)
+                ) possibleMoves currentHand
+            else 
+                possibleMoves
+
+        let rec startAboveCoord (xstart,ystart) (xcurrent, ycurrent) moves =
+            if checkValidStartField (xcurrent, ycurrent) st State.Down then
+                let newMoves = moves @ move (xcurrent, ycurrent) State.Down st.dict  st.hand List.Empty List.Empty
+                if ycurrent >= (ystart - 7) then // TODO: replace hardcoded value
+                    startAboveCoord (xstart, ystart) (xcurrent, ycurrent - 1) newMoves
+                else
+                    moves
+            else
+                moves
+                
+        let rec startLeftOfCoord (xstart,ystart) (xcurrent, ycurrent) moves =
+            if checkValidStartField (xcurrent, ycurrent) st State.Down then
+
+                let newMoves = moves @ move (xcurrent, ycurrent) State.Down st.dict  st.hand List.Empty List.Empty
+                if xcurrent >= (xstart - 7) then // TODO: replace hardcoded value
+                    startLeftOfCoord (xstart, ystart) (xcurrent - 1, ycurrent) newMoves
+                else
+                    moves
+            else
+                moves
+        
+        let startDownFromCoord coord =  
+            if checkValidStartField coord st State.Down then
+                move coord State.Down st.dict st.hand List.empty List.empty
+            else 
+                []
+        
+        let startRightFromCoord coord = 
+            // debugPrint "going right \n"
+            if checkValidStartField coord st State.Right then
+                move coord State.Right st.dict st.hand List.empty List.empty
+            else 
+                []
+
+        findLongestWord (List.fold (fun acc coord -> 
+                // debugPrint (sprintf "Accumalator: %A - coord: %A \n" acc coord)
+                let above = startAboveCoord coord coord List.empty 
+                let left = startLeftOfCoord coord coord List.empty 
+                let down = startDownFromCoord coord 
+                let right = startRightFromCoord coord
+
+                // debugPrint (sprintf "above: %A\n" above)
+                // debugPrint (sprintf "left: %A\n" left)
+                // debugPrint (sprintf "down: %A\n" down)
+                // debugPrint (sprintf "right: %A\n" right)
+
+                acc @ above @ left @ down @ right
+            ) List.Empty coords)
+
     
     let stringMove move =
         List.fold(fun acc ((x, y), (id, (char, point))) -> 
@@ -145,32 +282,38 @@ module Scrabble =
 
     let nextMove (st : State.state) pieces = 
         // check if it is the first move of the game
-        let customHand = MultiSet.empty |> MultiSet.addSingle 8u |> MultiSet.addSingle 9u |> MultiSet.addSingle 20u
-        let first = findMove st.board.center st pieces customHand
-        debugPrint (sprintf "First length: %A\n" (List.length first))
-        debugPrint (sprintf "stringhand = %A\n" first)
-        let move = stringMove first
-        debugPrint (sprintf "MOVE: %A" move)
-        move
+        //let customHand = MultiSet.empty |> MultiSet.addSingle 8u |> MultiSet.addSingle 9u |> MultiSet.addSingle 20u
+        if (Map.isEmpty st.placedTiles) then
+            findMove [st.board.center] st pieces
+        else
+            let coordList = st.placedTiles |> Map.toList |> List.map fst
+            findMove coordList st pieces
         
 
     let playGame cstream pieces (st : State.state) =
 
         let rec aux (st : State.state) =
-            Print.printHand pieces (State.hand st)
+            debugPrint (sprintf "playerturn: %A\n" st.playerTurn )
+            if st.playerTurn = st.playerNumber then 
+                Print.printHand pieces (State.hand st)
 
-            // remove the force print when you move on from manual input (or when you have learnt the format)
-            forcePrint "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
-            // let input =  System.Console.ReadLine()
-            let input = nextMove st pieces
-            debugPrint (sprintf "Laurits: %s \n" input)
-            let move = RegEx.parseMove input
+                // remove the force print when you move on from manual input (or when you have learnt the format)
+                forcePrint "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
+                // let input =  System.Console.ReadLine()
+                let input = nextMove st pieces
+                // Check if we have found a word
+                if List.isEmpty input then
+                    debugPrint "VI PASSER"
+                    send cstream (SMPass)
+                else 
+                    debugPrint (sprintf " VORESMOVE: %s \n" (stringMove input))
+                    let move = RegEx.parseMove (stringMove input)
 
-            debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
-            send cstream (SMPlay move)
-
+                    debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) 
+                    send cstream (SMPlay move)
+                    debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move)
+            
             let msg = recv cstream
-            debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
 
             match msg with
             | RCM (CMPlaySuccess(ms, points, newPieces)) ->
@@ -180,20 +323,24 @@ module Scrabble =
                 // remove ms from hand
                 // add newPieces to hand
                 // update board
-                let st' = State.removePieces ms st |> State.addPieces newPieces |> State.updateBoard ms
+                debugPrint (sprintf "Succesfully played: %A\n" ms)
+                let st' = State.removePieces ms st |> State.addPieces newPieces |> State.updateBoard ms |> State.updatePlayerTurn
                 aux st'
             | RCM (CMPlayed (pid, ms, points)) ->
                 (* Successful play by other player. Update your state *)
-                //let st' = {st.board, st.dict, st.playerNumber, st.hand, st.numberOfPlayers, st.turnCount} // This state needs to be updated
-                let st' = State.updateBoard ms st
+                let st' = State.updateBoard ms st |> State.updatePlayerTurn
                 aux st'
             | RCM (CMPlayFailed (pid, ms)) ->
                 (* Failed play. Update your state *)
-                let st' = st // This state needs to be updated
+                let st' = st |> State.updatePlayerTurn
                 aux st'
             | RCM (CMGameOver _) -> ()
+            | RCM (CMPassed (_)) ->
+                let st' = State.updatePlayerTurn st
+                aux st'
             | RCM a -> failwith (sprintf "not implmented: %A" a)
             | RGPE err -> printfn "Gameplay Error:\n%A" err; aux st
+            
 
 
         aux st
@@ -221,6 +368,6 @@ module Scrabble =
         let board = Parser.mkBoard boardP
                   
         let handSet = List.fold (fun acc (x, k) -> MultiSet.add x k acc) MultiSet.empty hand
-        let (placedTiles: Map<ScrabbleUtil.coord, uint32>) = Map.empty
+        let (placedTiles: Map<ScrabbleUtil.coord, char>) = Map.empty
 
-        fun () -> playGame cstream tiles (State.mkState board dict playerNumber placedTiles handSet)
+        fun () -> playGame cstream tiles (State.mkState board dict playerNumber placedTiles handSet playerTurn numPlayers)
