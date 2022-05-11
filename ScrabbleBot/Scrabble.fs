@@ -114,7 +114,7 @@ module Scrabble =
             | false -> acc
         ) List.empty possibleMoves
 
-    let checkNoSurroundingTiles (x,y) dir (st: State.state) =
+    let checkNoSurroundingTiles (x,y) dir (st: State.state) hasStarted =
         if State.isCoordOnBoard st (x,y) then
             if dir = State.Right then
                 match Map.tryFind (x, y+1) st.placedTiles with
@@ -123,9 +123,12 @@ module Scrabble =
                         match Map.tryFind (x, y-1) st.placedTiles with
                         | Some _ -> false
                         | None -> 
-                            match Map.tryFind (x+1, y) st.placedTiles with
-                            | Some _ -> false
-                            | None   -> true
+                            if hasStarted then
+                                match Map.tryFind (x+1, y) st.placedTiles with
+                                | Some _ -> false
+                                | None   -> true
+                            else 
+                                true
             else
                 match Map.tryFind (x+1, y) st.placedTiles with
                 | Some _ -> false
@@ -133,9 +136,12 @@ module Scrabble =
                     match Map.tryFind (x-1, y) st.placedTiles with
                     | Some _ -> false
                     | None -> 
-                        match Map.tryFind (x, y+1) st.placedTiles with
-                        | Some _ -> false
-                        | None   -> true
+                        if hasStarted then
+                            match Map.tryFind (x, y+1) st.placedTiles with
+                            | Some _ -> false
+                            | None   -> true
+                        else
+                            true
         else 
             false
 
@@ -185,40 +191,57 @@ module Scrabble =
 
     let findMove (coords: List<ScrabbleUtil.coord>) (st: State.state) (pieces: Map<uint32, tile>) =
         debugPrint "MOVING \n"
-        let rec move coord dir dict currentHand currentMove possibleMoves =
+
+        let rec move coord dir dict currentHand currentMove possibleMoves hasStarted startCoord =
+            // find the next coordinate
             let nextCoord = State.next coord dir
-            //debugPrint (sprintf "nexCoord: %A\n" nextCoord)
+
+            // figure out if the current coord is the startcoord and set hasStarted - this should only happen when there is a tile on the map
+            let newHasStarted = 
+                if hasStarted then
+                    true
+                else
+                    coord = startCoord
+            
+            // check if the next coordinate has a character
             match Map.tryFind coord st.placedTiles with
             | Some c -> 
-                match Dictionary.step c dict with
-                | Some (isWord, newDict) -> 
-                    if isWord then
-                        if List.length currentMove > 0 then
+                // dictionary step with the character
+                    match Dictionary.step c dict with
+                    | Some (isWord, newDict) ->  
+                        // if it is a word and we have started to build our move and the startcoord is a part of the move and there are no adjecent coords that does not make a valid word
+                        if isWord && List.length currentMove > 0 && newHasStarted  && checkNoSurroundingTiles coord dir st newHasStarted then // we need to check that when a move starts above or left of start the rest of the word is also word
                             let newPossibleMoves = currentMove :: possibleMoves
-                            move nextCoord dir newDict currentHand currentMove newPossibleMoves
-                        else
-                            move nextCoord dir newDict currentHand currentMove possibleMoves
-                    else 
-                        move nextCoord dir newDict currentHand currentMove possibleMoves
-                | None -> possibleMoves
-            | None -> aux coord dir dict currentHand currentMove possibleMoves
+                            move nextCoord dir newDict currentHand currentMove newPossibleMoves newHasStarted startCoord
+                        else 
+                            move nextCoord dir newDict currentHand currentMove possibleMoves newHasStarted startCoord
+                    | None -> possibleMoves // if the dictionary step fails, we can't build a word
 
-        and aux coord dir dict currentHand currentMove possibleMoves =
+            | None -> aux coord dir dict currentHand currentMove possibleMoves hasStarted startCoord // if the coordinate is empty, we use our hand
+
+        // trying to add a tile from the hand to the move
+        and aux coord dir dict currentHand currentMove possibleMoves hasStarted startCoord =
+            // finding the next coordinate
             let newCoord = State.next coord dir
+
             // check the tiles in the opposite direction - if there are some drop the field
-            if checkNoSurroundingTiles coord dir st then
+            if checkNoSurroundingTiles coord dir st hasStarted then
+                // go through all tiles on the hand
                 MultiSet.fold (fun acc id _ -> 
-                    // create a multiset of the remaining pieces in the hand
+                    // create a multiset of the remaining pieces in the hand to use for next move step
                     let newHand = MultiSet.removeSingle id currentHand
                     acc @ Set.fold (fun acc2 (c, p) -> 
+                        // build up the move
                         let newMove = currentMove @ [coord, ((id), (c, p))]
+
+                        // check if we can dictionary step with the tile
                         match Dictionary.step c dict with
                         | Some (isWord, newDict) ->
-                            if isWord then
+                            if isWord && hasStarted then
                                 let newPossibleMoves = newMove :: possibleMoves
-                                acc2 @ move newCoord dir newDict newHand newMove newPossibleMoves
+                                acc2 @ move newCoord dir newDict newHand newMove newPossibleMoves hasStarted startCoord
                             else
-                                acc2 @ move newCoord dir newDict newHand newMove possibleMoves
+                                acc2 @ move newCoord dir newDict newHand newMove possibleMoves hasStarted startCoord
                         | None -> acc2
                     ) List.empty (Map.find id pieces)
                 ) possibleMoves currentHand
@@ -227,7 +250,8 @@ module Scrabble =
 
         let rec startAboveCoord (xstart,ystart) (xcurrent, ycurrent) moves =
             if checkValidStartField (xcurrent, ycurrent) st State.Down then
-                let newMoves = moves @ move (xcurrent, ycurrent) State.Down st.dict  st.hand List.Empty List.Empty
+                let hasStarted = xstart = xcurrent && ystart = ycurrent
+                let newMoves = moves @ move (xcurrent, ycurrent) State.Down st.dict  st.hand List.Empty List.Empty hasStarted (xstart, ystart)
                 if ycurrent >= (ystart - 7) then // TODO: replace hardcoded value
                     startAboveCoord (xstart, ystart) (xcurrent, ycurrent - 1) newMoves
                 else
@@ -236,9 +260,9 @@ module Scrabble =
                 moves
                 
         let rec startLeftOfCoord (xstart,ystart) (xcurrent, ycurrent) moves =
-            if checkValidStartField (xcurrent, ycurrent) st State.Down then
-
-                let newMoves = moves @ move (xcurrent, ycurrent) State.Down st.dict  st.hand List.Empty List.Empty
+            if checkValidStartField (xcurrent, ycurrent) st State.Right then
+                let hasStarted = xstart = xcurrent && ystart = ycurrent
+                let newMoves = moves @ move (xcurrent, ycurrent) State.Right st.dict  st.hand List.Empty List.Empty hasStarted (xstart, ystart)
                 if xcurrent >= (xstart - 7) then // TODO: replace hardcoded value
                     startLeftOfCoord (xstart, ystart) (xcurrent - 1, ycurrent) newMoves
                 else
@@ -246,16 +270,17 @@ module Scrabble =
             else
                 moves
         
+
         let startDownFromCoord coord =  
             if checkValidStartField coord st State.Down then
-                move coord State.Down st.dict st.hand List.empty List.empty
+                move coord State.Down st.dict st.hand List.empty List.empty true coord
             else 
                 []
         
         let startRightFromCoord coord = 
             // debugPrint "going right \n"
             if checkValidStartField coord st State.Right then
-                move coord State.Right st.dict st.hand List.empty List.empty
+                move coord State.Right st.dict st.hand List.empty List.empty true coord
             else 
                 []
 
@@ -271,7 +296,7 @@ module Scrabble =
                 // debugPrint (sprintf "down: %A\n" down)
                 // debugPrint (sprintf "right: %A\n" right)
 
-                acc @ above @ left @ down @ right
+                acc @ left @ above @ down @ right
             ) List.Empty coords)
 
     
@@ -303,7 +328,7 @@ module Scrabble =
                 let input = nextMove st pieces
                 // Check if we have found a word
                 if List.isEmpty input then
-                    debugPrint "VI PASSER"
+                    debugPrint "VI PASSER \n"
                     send cstream (SMPass)
                 else 
                     debugPrint (sprintf " VORESMOVE: %s \n" (stringMove input))

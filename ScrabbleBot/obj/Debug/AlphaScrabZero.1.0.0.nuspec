@@ -15,6 +15,6 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="C:\Users\marku\OneDrive\Desktop\4. Semester\BFUP\Project\scrabble\ScrabbleBot\bin\Debug\net6.0\AlphaScrabZero.dll" target="lib\net6.0\AlphaScrabZero.dll" />
+    <file src="/Users/lauritsbonde/Library/Mobile Documents/com~apple~CloudDocs/ITU SWU/4.semester/Functional programming/Scrabble/Scrabble/ScrabbleTemplate/ScrabbleBot/bin/Debug/net6.0/AlphaScrabZero.dll" target="lib/net6.0/AlphaScrabZero.dll" />
   </files>
 </package>
