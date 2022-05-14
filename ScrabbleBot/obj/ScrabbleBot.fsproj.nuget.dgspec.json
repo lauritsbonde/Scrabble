@@ -1,27 +1,25 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\marku\\OneDrive\\Desktop\\4. Semester\\BFUP\\Project\\scrabble\\ScrabbleBot\\ScrabbleBot.fsproj": {}
+    "/Users/lauritsbonde/Library/Mobile Documents/com~apple~CloudDocs/ITU SWU/4.semester/Functional programming/Scrabble/Scrabble/ScrabbleTemplate/ScrabbleBot/ScrabbleBot.fsproj": {}
   },
   "projects": {
-    "C:\\Users\\marku\\OneDrive\\Desktop\\4. Semester\\BFUP\\Project\\scrabble\\ScrabbleBot\\ScrabbleBot.fsproj": {
+    "/Users/lauritsbonde/Library/Mobile Documents/com~apple~CloudDocs/ITU SWU/4.semester/Functional programming/Scrabble/Scrabble/ScrabbleTemplate/ScrabbleBot/ScrabbleBot.fsproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\marku\\OneDrive\\Desktop\\4. Semester\\BFUP\\Project\\scrabble\\ScrabbleBot\\ScrabbleBot.fsproj",
+        "projectUniqueName": "/Users/lauritsbonde/Library/Mobile Documents/com~apple~CloudDocs/ITU SWU/4.semester/Functional programming/Scrabble/Scrabble/ScrabbleTemplate/ScrabbleBot/ScrabbleBot.fsproj",
         "projectName": "AlphaScrabZero",
-        "projectPath": "C:\\Users\\marku\\OneDrive\\Desktop\\4. Semester\\BFUP\\Project\\scrabble\\ScrabbleBot\\ScrabbleBot.fsproj",
-        "packagesPath": "C:\\Users\\marku\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\marku\\OneDrive\\Desktop\\4. Semester\\BFUP\\Project\\scrabble\\ScrabbleBot\\obj\\",
+        "projectPath": "/Users/lauritsbonde/Library/Mobile Documents/com~apple~CloudDocs/ITU SWU/4.semester/Functional programming/Scrabble/Scrabble/ScrabbleTemplate/ScrabbleBot/ScrabbleBot.fsproj",
+        "packagesPath": "/Users/lauritsbonde/.nuget/packages/",
+        "outputPath": "/Users/lauritsbonde/Library/Mobile Documents/com~apple~CloudDocs/ITU SWU/4.semester/Functional programming/Scrabble/Scrabble/ScrabbleTemplate/ScrabbleBot/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\marku\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "/Users/lauritsbonde/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net6.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {},
           "https://nuget.pkg.github.com/jesper-bengtson/index.json": {}
         },
@@ -63,7 +61,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.100\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/6.0.201/RuntimeIdentifierGraph.json"
         }
       }
     }
