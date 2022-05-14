@@ -1,6 +1,7 @@
 ﻿// Learn more about F# at http://fsharp.org
 
 open System
+open AlphaScrabZero
 
 let time f =
     let start = System.DateTime.Now
@@ -22,8 +23,8 @@ let spawnMultiples name dict bot =
 let main argv =
     ScrabbleUtil.DebugPrint.toggleDebugPrint true // Change to false to supress debug output
 
-    System.Console.BackgroundColor <- System.ConsoleColor.White
-    System.Console.ForegroundColor <- System.ConsoleColor.Black
+    System.Console.BackgroundColor <- System.ConsoleColor.Magenta
+    System.Console.ForegroundColor <- System.ConsoleColor.Green
     System.Console.Clear()
 
 
@@ -48,8 +49,8 @@ let main argv =
 
     let dictAPI =
         // Uncomment if you have implemented a dictionary. last element None if you have not implemented a GADDAG
-        // Some (Dictionary.empty, Dictionary.insert, Dictionary.step, Some Dictionary.reverse) 
-        None
+        Some ( Dictionary.empty, Dictionary.insert, Dictionary.step, None) 
+        // None
 
     // Uncomment this line to call your client
     let (dictionary, time) =

@@ -8,13 +8,13 @@
 /Users/lauritsbonde/Library/Mobile Documents/com~apple~CloudDocs/ITU SWU/4.semester/Functional programming/Scrabble/Scrabble/ScrabbleTemplate/ScrabbleBot/bin/Debug/net6.0/AlphaScrabZero.pdb
 /Users/lauritsbonde/Library/Mobile Documents/com~apple~CloudDocs/ITU SWU/4.semester/Functional programming/Scrabble/Scrabble/ScrabbleTemplate/ScrabbleBot/obj/Debug/net6.0/AlphaScrabZero.dll
 /Users/lauritsbonde/Library/Mobile Documents/com~apple~CloudDocs/ITU SWU/4.semester/Functional programming/Scrabble/Scrabble/ScrabbleTemplate/ScrabbleBot/obj/Debug/net6.0/AlphaScrabZero.pdb
-C:/Users/marku/OneDrive/Desktop/4. Semester/BFUP/Project/scrabble/ScrabbleBot/bin/Debug/net6.0/AlphaScrabZero.deps.json
-C:/Users/marku/OneDrive/Desktop/4. Semester/BFUP/Project/scrabble/ScrabbleBot/bin/Debug/net6.0/AlphaScrabZero.dll
-C:/Users/marku/OneDrive/Desktop/4. Semester/BFUP/Project/scrabble/ScrabbleBot/bin/Debug/net6.0/AlphaScrabZero.pdb
-C:/Users/marku/OneDrive/Desktop/4. Semester/BFUP/Project/scrabble/ScrabbleBot/bin/Debug/net6.0/ScrabbleUtil.dll
-C:/Users/marku/OneDrive/Desktop/4. Semester/BFUP/Project/scrabble/ScrabbleBot/obj/Debug/net6.0/ScrabbleBot.fsproj.AssemblyReference.cache
-C:/Users/marku/OneDrive/Desktop/4. Semester/BFUP/Project/scrabble/ScrabbleBot/obj/Debug/net6.0/ScrabbleBot.AssemblyInfoInputs.cache
-C:/Users/marku/OneDrive/Desktop/4. Semester/BFUP/Project/scrabble/ScrabbleBot/obj/Debug/net6.0/ScrabbleBot.AssemblyInfo.fs
-C:/Users/marku/OneDrive/Desktop/4. Semester/BFUP/Project/scrabble/ScrabbleBot/obj/Debug/net6.0/ScrabbleBot.fsproj.CopyComplete
-C:/Users/marku/OneDrive/Desktop/4. Semester/BFUP/Project/scrabble/ScrabbleBot/obj/Debug/net6.0/AlphaScrabZero.dll
-C:/Users/marku/OneDrive/Desktop/4. Semester/BFUP/Project/scrabble/ScrabbleBot/obj/Debug/net6.0/AlphaScrabZero.pdb
+C:\Users\marku\OneDrive\Desktop\4. Semester\BFUP\Project\scrabble\ScrabbleBot\bin\Debug\net6.0\AlphaScrabZero.deps.json
+C:\Users\marku\OneDrive\Desktop\4. Semester\BFUP\Project\scrabble\ScrabbleBot\bin\Debug\net6.0\AlphaScrabZero.dll
+C:\Users\marku\OneDrive\Desktop\4. Semester\BFUP\Project\scrabble\ScrabbleBot\bin\Debug\net6.0\AlphaScrabZero.pdb
+C:\Users\marku\OneDrive\Desktop\4. Semester\BFUP\Project\scrabble\ScrabbleBot\bin\Debug\net6.0\ScrabbleUtil.dll
+C:\Users\marku\OneDrive\Desktop\4. Semester\BFUP\Project\scrabble\ScrabbleBot\obj\Debug\net6.0\ScrabbleBot.fsproj.AssemblyReference.cache
+C:\Users\marku\OneDrive\Desktop\4. Semester\BFUP\Project\scrabble\ScrabbleBot\obj\Debug\net6.0\ScrabbleBot.AssemblyInfoInputs.cache
+C:\Users\marku\OneDrive\Desktop\4. Semester\BFUP\Project\scrabble\ScrabbleBot\obj\Debug\net6.0\ScrabbleBot.AssemblyInfo.fs
+C:\Users\marku\OneDrive\Desktop\4. Semester\BFUP\Project\scrabble\ScrabbleBot\obj\Debug\net6.0\ScrabbleBot.fsproj.CopyComplete
+C:\Users\marku\OneDrive\Desktop\4. Semester\BFUP\Project\scrabble\ScrabbleBot\obj\Debug\net6.0\AlphaScrabZero.dll
+C:\Users\marku\OneDrive\Desktop\4. Semester\BFUP\Project\scrabble\ScrabbleBot\obj\Debug\net6.0\AlphaScrabZero.pdb

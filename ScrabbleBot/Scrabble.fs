@@ -149,41 +149,14 @@ module Scrabble =
         if State.isCoordOnBoard st (x,y) then
             if dir = State.Right then
                     match Map.tryFind (x-1, y) st.placedTiles with
-                    | Some c -> 
-                        // debugPrint (sprintf "found %A at coord: %A x-1 right\n" c (x,y))
-                        false
+                    | Some c -> false
                     | None   -> true
-                        // match Map.tryFind (x, y-1) st.placedTiles with
-                        //     | Some c -> 
-                        //         // debugPrint (sprintf "found %A at y-1 right\n" c)
-                        //         false
-                        //     | None -> 
-                        //         match Map.tryFind (x, y+1) st.placedTiles with
-                        //         | Some c -> 
-                        //             // debugPrint (sprintf "found %A at y+1 right\n" c)
-                        //             false
-                        //         | None -> 
-                        //             // debugPrint "okay right \n"
-                        //             true
                                 
             else if dir = State.Down then
                 match Map.tryFind (x, y-1) st.placedTiles with
-                    | Some c -> 
-                        // debugPrint (sprintf "found %A at y-1 down\n" c)
-                        false
+                    | Some c -> false
                     | None   -> true
-                        // match Map.tryFind (x-1, y) st.placedTiles with
-                        //     | Some c -> 
-                        //         // debugPrint (sprintf "found %A at c-1 down\n" c)
-                        //         false
-                        //     | None -> true
-                        //         match Map.tryFind (x+1, y) st.placedTiles with
-                        //         | Some c -> 
-                        //             // debugPrint (sprintf "found %A at x+1 down\n" c)
-                        //             false
-                        //         | None -> 
-                        //             // debugPrint "okay down \n"
-                        //             true
+
             else 
                 false
         else 
@@ -210,7 +183,7 @@ module Scrabble =
                     match Dictionary.step c dict with
                     | Some (isWord, newDict) ->  
                         // if it is a word and we have started to build our move and the startcoord is a part of the move and there are no adjecent coords that does not make a valid word
-                        if isWord && List.length currentMove > 0 && newHasStarted  && checkNoSurroundingTiles coord dir st newHasStarted then // we need to check that when a move starts above or left of start the rest of the word is also word
+                        if isWord && List.length currentMove > 0 && newHasStarted && checkNoSurroundingTiles coord dir st newHasStarted then // we need to check that when a move starts above or left of start the rest of the word is also word
                             let newPossibleMoves = currentMove :: possibleMoves
                             move nextCoord dir newDict currentHand currentMove newPossibleMoves newHasStarted startCoord
                         else 
