@@ -26,8 +26,8 @@
     <Compile Include="Parser.fs" />
     <Compile Include="Scrabble.fsi" />
     <Compile Include="Scrabble.fs" />
-    <Compile Include="Dictionary.fsi"/>
-    <Compile Include="Dictionary.fs"/>
+    <Compile Include="Dict.fsi"/>
+    <Compile Include="Dict.fs"/>
   </ItemGroup>
 
   <ItemGroup>

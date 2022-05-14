@@ -912,26 +912,24 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\marku\\.nuget\\packages\\": {}
+    "/Users/lauritsbonde/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "c:\\Users\\marku\\OneDrive\\Desktop\\4. Semester\\BFUP\\Project\\scrabble\\ScrabbleTemplate\\ScrabbleTemplate.fsproj",
+      "projectUniqueName": "/Users/lauritsbonde/Library/Mobile Documents/com~apple~CloudDocs/ITU SWU/4.semester/Functional programming/Scrabble/Scrabble/ScrabbleTemplate/ScrabbleTemplate/ScrabbleTemplate.fsproj",
       "projectName": "ScrabbleTemplate",
-      "projectPath": "c:\\Users\\marku\\OneDrive\\Desktop\\4. Semester\\BFUP\\Project\\scrabble\\ScrabbleTemplate\\ScrabbleTemplate.fsproj",
-      "packagesPath": "C:\\Users\\marku\\.nuget\\packages\\",
-      "outputPath": "c:\\Users\\marku\\OneDrive\\Desktop\\4. Semester\\BFUP\\Project\\scrabble\\ScrabbleTemplate\\obj\\",
+      "projectPath": "/Users/lauritsbonde/Library/Mobile Documents/com~apple~CloudDocs/ITU SWU/4.semester/Functional programming/Scrabble/Scrabble/ScrabbleTemplate/ScrabbleTemplate/ScrabbleTemplate.fsproj",
+      "packagesPath": "/Users/lauritsbonde/.nuget/packages/",
+      "outputPath": "/Users/lauritsbonde/Library/Mobile Documents/com~apple~CloudDocs/ITU SWU/4.semester/Functional programming/Scrabble/Scrabble/ScrabbleTemplate/ScrabbleTemplate/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\marku\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        "/Users/lauritsbonde/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net6.0"
       ],
       "sources": {
-        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {},
         "https://nuget.pkg.github.com/jesper-bengtson/index.json": {}
       },
@@ -939,8 +937,8 @@
         "net6.0": {
           "targetAlias": "net6.0",
           "projectReferences": {
-            "c:\\Users\\marku\\OneDrive\\Desktop\\4. Semester\\BFUP\\Project\\scrabble\\ScrabbleBot\\ScrabbleBot.fsproj": {
-              "projectPath": "c:\\Users\\marku\\OneDrive\\Desktop\\4. Semester\\BFUP\\Project\\scrabble\\ScrabbleBot\\ScrabbleBot.fsproj"
+            "/Users/lauritsbonde/Library/Mobile Documents/com~apple~CloudDocs/ITU SWU/4.semester/Functional programming/Scrabble/Scrabble/ScrabbleTemplate/ScrabbleBot/ScrabbleBot.fsproj": {
+              "projectPath": "/Users/lauritsbonde/Library/Mobile Documents/com~apple~CloudDocs/ITU SWU/4.semester/Functional programming/Scrabble/Scrabble/ScrabbleTemplate/ScrabbleBot/ScrabbleBot.fsproj"
             }
           }
         }
@@ -982,7 +980,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.100\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/6.0.201/RuntimeIdentifierGraph.json"
       }
     }
   }

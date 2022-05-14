@@ -210,6 +210,7 @@ module Scrabble =
                         // check if we can dictionary step with the tile
                         match Dictionary.step c dict with
                         | Some (isWord, newDict) ->
+                            // debugPrint (sprintf "CurrentMove %A - isword %A \n" currentMove isWord)
                             if isWord && hasStarted then
                                 let newPossibleMoves = newMove :: possibleMoves
                                 acc2 @ move newCoord dir newDict newHand newMove newPossibleMoves hasStarted startCoord
