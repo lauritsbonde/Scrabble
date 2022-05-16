@@ -23,8 +23,8 @@ let spawnMultiples name dict bot =
 let main argv =
     ScrabbleUtil.DebugPrint.toggleDebugPrint true // Change to false to supress debug output
 
-    System.Console.BackgroundColor <- System.ConsoleColor.Magenta
-    System.Console.ForegroundColor <- System.ConsoleColor.Green
+    System.Console.BackgroundColor <- System.ConsoleColor.White
+    System.Console.ForegroundColor <- System.ConsoleColor.Black
     System.Console.Clear()
 
 

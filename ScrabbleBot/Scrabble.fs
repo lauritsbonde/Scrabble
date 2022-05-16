@@ -102,12 +102,6 @@ module State =
 module Scrabble =
     open System.Threading
 
-    // needs to find a move in the form of string: <x-coordinate> <y-coordinate> <piece id><character><point-value>
-    (* TODO:
-        check for first move - if the center point is not empty then it is the first move
-        if first move - find a word from player hand
-        if not first move - find a tile on the board and make a word from the playerhand that contains the tile(s)
-    *)
     let findLongestWord (possibleMoves: List<State.move>) =
         List.fold (fun acc move -> 
             match List.length move > List.length acc with
@@ -221,62 +215,48 @@ module Scrabble =
                 possibleMoves
 
         let rec startAboveCoord (xstart,ystart) (xcurrent, ycurrent) moves (handSize: uint32) =
-            async {
-                if checkValidStartField (xcurrent, ycurrent) st State.Down then
-                    let hasStarted = xstart = xcurrent && ystart = ycurrent
-                    let newMoves = moves @ move (xcurrent, ycurrent) State.Down st.dict st.hand List.Empty List.Empty hasStarted (xstart, ystart)
-                    if ycurrent >= (ystart - (int handSize)) then 
-                        return startAboveCoord (xstart, ystart) (xcurrent, ycurrent - 1) newMoves handSize |> Async.RunSynchronously
-                    else
-                        return moves
+            if checkValidStartField (xcurrent, ycurrent) st State.Down then
+                let hasStarted = xstart = xcurrent && ystart = ycurrent
+                let newMoves = moves @ move (xcurrent, ycurrent) State.Down st.dict st.hand List.Empty List.Empty hasStarted (xstart, ystart)
+                if ycurrent >= (ystart - (int handSize)) then 
+                    startAboveCoord (xstart, ystart) (xcurrent, ycurrent - 1) newMoves handSize
                 else
-                    return moves
-            }
+                    moves
+            else
+                moves
                 
         let rec startLeftOfCoord (xstart,ystart) (xcurrent, ycurrent) moves (handSize: uint32) =
-            async {
-                if checkValidStartField (xcurrent, ycurrent) st State.Right then
-                    let hasStarted = xstart = xcurrent && ystart = ycurrent
-                    let newMoves = moves @ move (xcurrent, ycurrent) State.Right st.dict  st.hand List.Empty List.Empty hasStarted (xstart, ystart)
-                    if xcurrent >= (xstart - (int handSize)) then 
-                        return startLeftOfCoord (xstart, ystart) (xcurrent - 1, ycurrent) newMoves handSize |> Async.RunSynchronously
-                    else
-                        return moves
+            if checkValidStartField (xcurrent, ycurrent) st State.Right then
+                let hasStarted = xstart = xcurrent && ystart = ycurrent
+                let newMoves = moves @ move (xcurrent, ycurrent) State.Right st.dict  st.hand List.Empty List.Empty hasStarted (xstart, ystart)
+                if xcurrent >= (xstart - (int handSize)) then 
+                    startLeftOfCoord (xstart, ystart) (xcurrent - 1, ycurrent) newMoves handSize
                 else
-                    return moves
-            }
+                    moves
+            else
+                moves
+            
         
 
         let startDownFromCoord coord = 
-            async {
-                if checkValidStartField coord st State.Down then
-                    return move coord State.Down st.dict st.hand List.empty List.empty true coord
-                else 
-                    return []
-            }
+            if checkValidStartField coord st State.Down then
+                move coord State.Down st.dict st.hand List.empty List.empty true coord
+            else 
+                []
 
         let startRightFromCoord coord = 
-            async {
-                if checkValidStartField coord st State.Right then
-                    return move coord State.Right st.dict st.hand List.empty List.empty true coord
-                else 
-                    return []
-            }
+            if checkValidStartField coord st State.Right then
+                move coord State.Right st.dict st.hand List.empty List.empty true coord
+            else 
+                []
+            
 
         findLongestWord (List.fold (fun acc coord -> 
-                ([(startAboveCoord coord coord List.empty (MultiSet.size st.hand));
-                (startLeftOfCoord coord coord List.empty (MultiSet.size st.hand));
-                (startDownFromCoord coord);
-                (startRightFromCoord coord)]
-                |> Async.Parallel
-                |> Async.RunSynchronously
-                |> Array.fold (fun acc2 list -> acc2 @ list ) List.empty) @ acc
-
-                // let above = startAboveCoord coord coord List.empty (MultiSet.size st.hand) |> Async.Parallel |> Async.RunSynchronously
-                // let left = startLeftOfCoord coord coord List.empty (MultiSet.size st.hand)
-                // let down = startDownFromCoord coord 
-                // let right = startRightFromCoord coord
-                
+                let above = startAboveCoord coord coord List.empty (MultiSet.size st.hand)
+                let left = startLeftOfCoord coord coord List.empty (MultiSet.size st.hand)
+                let down = startDownFromCoord coord 
+                let right = startRightFromCoord coord
+                acc @ above @ left @ down @ right
             ) List.Empty coords)
 
     
