@@ -90,12 +90,13 @@ module State =
          mkState st.board st.dict st.playerNumber st.placedTiles st.hand ((st.playerTurn % st.numPlayers) + 1u) st.numPlayers
 
     let isCoordOnBoard st (x,y) =
-        //TODO figure out how to get the boardsize and use that instead of 7
-        let boardSize = 7
-        if x <= boardSize && x >= -boardSize && y >= -boardSize && y <= boardSize then
-            true
-        else
-            false
+        true
+        // for not infinite boards 
+        // let boardSize = 7 - get the boardSize from parsing the board
+        // if x <= boardSize && x >= -boardSize && y >= -boardSize && y <= boardSize then
+        //     true
+        // else
+        //     false
         
     
 module Scrabble =
@@ -163,8 +164,6 @@ module Scrabble =
             false
 
     let findMove (coords: List<ScrabbleUtil.coord>) (st: State.state) (pieces: Map<uint32, tile>) =
-        debugPrint "MOVING \n"
-
         let rec move coord dir dict currentHand currentMove possibleMoves hasStarted startCoord =
             // find the next coordinate
             let nextCoord = State.next coord dir
@@ -210,7 +209,6 @@ module Scrabble =
                         // check if we can dictionary step with the tile
                         match Dictionary.step c dict with
                         | Some (isWord, newDict) ->
-                            // debugPrint (sprintf "CurrentMove %A - isword %A \n" currentMove isWord)
                             if isWord && hasStarted then
                                 let newPossibleMoves = newMove :: possibleMoves
                                 acc2 @ move newCoord dir newDict newHand newMove newPossibleMoves hasStarted startCoord
@@ -222,55 +220,63 @@ module Scrabble =
             else 
                 possibleMoves
 
-        let rec startAboveCoord (xstart,ystart) (xcurrent, ycurrent) moves =
-            if checkValidStartField (xcurrent, ycurrent) st State.Down then
-                let hasStarted = xstart = xcurrent && ystart = ycurrent
-                let newMoves = moves @ move (xcurrent, ycurrent) State.Down st.dict  st.hand List.Empty List.Empty hasStarted (xstart, ystart)
-                if ycurrent >= (ystart - 7) then // TODO: replace hardcoded value
-                    startAboveCoord (xstart, ystart) (xcurrent, ycurrent - 1) newMoves
+        let rec startAboveCoord (xstart,ystart) (xcurrent, ycurrent) moves (handSize: uint32) =
+            async {
+                if checkValidStartField (xcurrent, ycurrent) st State.Down then
+                    let hasStarted = xstart = xcurrent && ystart = ycurrent
+                    let newMoves = moves @ move (xcurrent, ycurrent) State.Down st.dict st.hand List.Empty List.Empty hasStarted (xstart, ystart)
+                    if ycurrent >= (ystart - (int handSize)) then 
+                        return startAboveCoord (xstart, ystart) (xcurrent, ycurrent - 1) newMoves handSize |> Async.RunSynchronously
+                    else
+                        return moves
                 else
-                    moves
-            else
-                moves
+                    return moves
+            }
                 
-        let rec startLeftOfCoord (xstart,ystart) (xcurrent, ycurrent) moves =
-            if checkValidStartField (xcurrent, ycurrent) st State.Right then
-                let hasStarted = xstart = xcurrent && ystart = ycurrent
-                let newMoves = moves @ move (xcurrent, ycurrent) State.Right st.dict  st.hand List.Empty List.Empty hasStarted (xstart, ystart)
-                if xcurrent >= (xstart - 7) then // TODO: replace hardcoded value
-                    startLeftOfCoord (xstart, ystart) (xcurrent - 1, ycurrent) newMoves
+        let rec startLeftOfCoord (xstart,ystart) (xcurrent, ycurrent) moves (handSize: uint32) =
+            async {
+                if checkValidStartField (xcurrent, ycurrent) st State.Right then
+                    let hasStarted = xstart = xcurrent && ystart = ycurrent
+                    let newMoves = moves @ move (xcurrent, ycurrent) State.Right st.dict  st.hand List.Empty List.Empty hasStarted (xstart, ystart)
+                    if xcurrent >= (xstart - (int handSize)) then 
+                        return startLeftOfCoord (xstart, ystart) (xcurrent - 1, ycurrent) newMoves handSize |> Async.RunSynchronously
+                    else
+                        return moves
                 else
-                    moves
-            else
-                moves
+                    return moves
+            }
         
 
-        let startDownFromCoord coord =  
-            if checkValidStartField coord st State.Down then
-                move coord State.Down st.dict st.hand List.empty List.empty true coord
-            else 
-                []
-        
+        let startDownFromCoord coord = 
+            async {
+                if checkValidStartField coord st State.Down then
+                    return move coord State.Down st.dict st.hand List.empty List.empty true coord
+                else 
+                    return []
+            }
+
         let startRightFromCoord coord = 
-            // debugPrint "going right \n"
-            if checkValidStartField coord st State.Right then
-                move coord State.Right st.dict st.hand List.empty List.empty true coord
-            else 
-                []
+            async {
+                if checkValidStartField coord st State.Right then
+                    return move coord State.Right st.dict st.hand List.empty List.empty true coord
+                else 
+                    return []
+            }
 
         findLongestWord (List.fold (fun acc coord -> 
-                // debugPrint (sprintf "Accumalator: %A - coord: %A \n" acc coord)
-                let above = startAboveCoord coord coord List.empty 
-                let left = startLeftOfCoord coord coord List.empty 
-                let down = startDownFromCoord coord 
-                let right = startRightFromCoord coord
+                ([(startAboveCoord coord coord List.empty (MultiSet.size st.hand));
+                (startLeftOfCoord coord coord List.empty (MultiSet.size st.hand));
+                (startDownFromCoord coord);
+                (startRightFromCoord coord)]
+                |> Async.Parallel
+                |> Async.RunSynchronously
+                |> Array.fold (fun acc2 list -> acc2 @ list ) List.empty) @ acc
 
-                // debugPrint (sprintf "above: %A\n" above)
-                // debugPrint (sprintf "left: %A\n" left)
-                // debugPrint (sprintf "down: %A\n" down)
-                // debugPrint (sprintf "right: %A\n" right)
-
-                acc @ left @ above @ down @ right
+                // let above = startAboveCoord coord coord List.empty (MultiSet.size st.hand) |> Async.Parallel |> Async.RunSynchronously
+                // let left = startLeftOfCoord coord coord List.empty (MultiSet.size st.hand)
+                // let down = startDownFromCoord coord 
+                // let right = startRightFromCoord coord
+                
             ) List.Empty coords)
 
     
@@ -281,7 +287,6 @@ module Scrabble =
 
     let nextMove (st : State.state) pieces = 
         // check if it is the first move of the game
-        //let customHand = MultiSet.empty |> MultiSet.addSingle 8u |> MultiSet.addSingle 9u |> MultiSet.addSingle 20u
         if (Map.isEmpty st.placedTiles) then
             findMove [st.board.center] st pieces
         else
@@ -299,7 +304,12 @@ module Scrabble =
                 // remove the force print when you move on from manual input (or when you have learnt the format)
                 forcePrint "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
                 // let input =  System.Console.ReadLine()
-                let input = nextMove st pieces
+                
+                let stopWatch = System.Diagnostics.Stopwatch.StartNew()
+                let input = nextMove st pieces        
+                stopWatch.Stop()
+                debugPrint (sprintf "TIME TO MOVE: %f\n" stopWatch.Elapsed.TotalMilliseconds)
+                
                 // Check if we have found a word
                 if List.isEmpty input then
                     debugPrint "VI PASSER \n"
