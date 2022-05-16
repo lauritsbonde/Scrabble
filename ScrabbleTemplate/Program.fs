@@ -1,6 +1,7 @@
 ﻿// Learn more about F# at http://fsharp.org
 
 open System
+open AlphaScrabZero
 
 let time f =
     let start = System.DateTime.Now
@@ -27,7 +28,7 @@ let main argv =
     System.Console.Clear()
 
 
-    // let board        = ScrabbleUtil.StandardBoard.standardBoard ()
+//    let board        = ScrabbleUtil.StandardBoard.standardBoard ()
     let board      = ScrabbleUtil.InfiniteBoard.infiniteBoard ()
 
 //    let board      = ScrabbleUtil.RandomBoard.randomBoard ()
@@ -40,7 +41,8 @@ let main argv =
 
     let words     = readLines "./Dictionaries/English.txt"
 
-    let handSize   = 7u //TODO: change to 7u
+
+    let handSize   = 7u
     let timeout    = None
     let tiles      = ScrabbleUtil.English.tiles 1u
     let seed       = None
@@ -48,15 +50,27 @@ let main argv =
 
     let dictAPI =
         // Uncomment if you have implemented a dictionary. last element None if you have not implemented a GADDAG
-        // Some (Dictionary.empty, Dictionary.insert, Dictionary.step, Some Dictionary.reverse) 
-        None
+        Some ( Dictionary.empty, Dictionary.insert, Dictionary.step, None) 
+        //None
 
     // Uncomment this line to call your client
     let (dictionary, time) =
         time (fun () -> ScrabbleUtil.Dictionary.mkDict words dictAPI)
+    
+    // FOR TESTING THE DICTIONARY
+    // let incorrectWords = ScrabbleUtil.Dictionary.test words 10 (dictionary false)
+
+    // match incorrectWords with
+    //     | [] -> ScrabbleUtil.DebugPrint.debugPrint ("Dictionary test sucessful!\n") 
+    //     |_ ->
+    //         ScrabbleUtil.DebugPrint.debugPrint ("Dictionary test failed for at least the
+    //             following words: \n")
+    //         List.iter (fun str -> 
+    //             ScrabbleUtil.DebugPrint.debugPrint (sprintf "%s\n"
+    //         str)) incorrectWords        
         
     let players    
-        = [("AlphaScrabZero", dictionary, AlphaScrabZero.Scrabble.startGame); ("Oxyphenbutazone", dictionary, AlphaScrabZero.Scrabble.startGame)]
+        = [("AlphaScrabZero", dictionary, AlphaScrabZero.Scrabble.startGame); ("Oxyphenbutazone", dictionary, Oxyphenbutazone.Scrabble.startGame)]
 
     // let players = spawnMultiples "OxyphenButazone" dictionary Oxyphenbutazone.Scrabble.startGame 4
 
