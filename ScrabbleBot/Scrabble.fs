@@ -90,12 +90,13 @@ module State =
          mkState st.board st.dict st.playerNumber st.placedTiles st.hand ((st.playerTurn % st.numPlayers) + 1u) st.numPlayers
 
     let isCoordOnBoard st (x,y) =
-        //TODO figure out how to get the boardsize and use that instead of 7
-        let boardSize = 7
-        if x <= boardSize && x >= -boardSize && y >= -boardSize && y <= boardSize then
-            true
-        else
-            false
+        true
+        // for none infinte boards
+        // let boardSize = 7
+        // if x <= boardSize && x >= -boardSize && y >= -boardSize && y <= boardSize then
+        //     true
+        // else
+        //     false
         
     
 module Scrabble =
@@ -149,41 +150,13 @@ module Scrabble =
         if State.isCoordOnBoard st (x,y) then
             if dir = State.Right then
                     match Map.tryFind (x-1, y) st.placedTiles with
-                    | Some c -> 
-                        // debugPrint (sprintf "found %A at coord: %A x-1 right\n" c (x,y))
-                        false
+                    | Some c -> false
                     | None   -> true
-                        // match Map.tryFind (x, y-1) st.placedTiles with
-                        //     | Some c -> 
-                        //         // debugPrint (sprintf "found %A at y-1 right\n" c)
-                        //         false
-                        //     | None -> 
-                        //         match Map.tryFind (x, y+1) st.placedTiles with
-                        //         | Some c -> 
-                        //             // debugPrint (sprintf "found %A at y+1 right\n" c)
-                        //             false
-                        //         | None -> 
-                        //             // debugPrint "okay right \n"
-                        //             true
                                 
             else if dir = State.Down then
                 match Map.tryFind (x, y-1) st.placedTiles with
-                    | Some c -> 
-                        // debugPrint (sprintf "found %A at y-1 down\n" c)
-                        false
+                    | Some c -> false
                     | None   -> true
-                        // match Map.tryFind (x-1, y) st.placedTiles with
-                        //     | Some c -> 
-                        //         // debugPrint (sprintf "found %A at c-1 down\n" c)
-                        //         false
-                        //     | None -> true
-                        //         match Map.tryFind (x+1, y) st.placedTiles with
-                        //         | Some c -> 
-                        //             // debugPrint (sprintf "found %A at x+1 down\n" c)
-                        //             false
-                        //         | None -> 
-                        //             // debugPrint "okay down \n"
-                        //             true
             else 
                 false
         else 
@@ -248,23 +221,23 @@ module Scrabble =
             else 
                 possibleMoves
 
-        let rec startAboveCoord (xstart,ystart) (xcurrent, ycurrent) moves =
+        let rec startAboveCoord (xstart,ystart) (xcurrent, ycurrent) moves handSize =
             if checkValidStartField (xcurrent, ycurrent) st State.Down then
                 let hasStarted = xstart = xcurrent && ystart = ycurrent
                 let newMoves = moves @ move (xcurrent, ycurrent) State.Down st.dict  st.hand List.Empty List.Empty hasStarted (xstart, ystart)
-                if ycurrent >= (ystart - 7) then // TODO: replace hardcoded value
-                    startAboveCoord (xstart, ystart) (xcurrent, ycurrent - 1) newMoves
+                if ycurrent >= (ystart - (int handSize)) then // TODO: replace hardcoded value
+                    startAboveCoord (xstart, ystart) (xcurrent, ycurrent - 1) newMoves handSize
                 else
                     moves
             else
                 moves
                 
-        let rec startLeftOfCoord (xstart,ystart) (xcurrent, ycurrent) moves =
+        let rec startLeftOfCoord (xstart,ystart) (xcurrent, ycurrent) moves handSize =
             if checkValidStartField (xcurrent, ycurrent) st State.Right then
                 let hasStarted = xstart = xcurrent && ystart = ycurrent
                 let newMoves = moves @ move (xcurrent, ycurrent) State.Right st.dict  st.hand List.Empty List.Empty hasStarted (xstart, ystart)
-                if xcurrent >= (xstart - 7) then // TODO: replace hardcoded value
-                    startLeftOfCoord (xstart, ystart) (xcurrent - 1, ycurrent) newMoves
+                if xcurrent >= (xstart - (int handSize)) then // TODO: replace hardcoded value
+                    startLeftOfCoord (xstart, ystart) (xcurrent - 1, ycurrent) newMoves handSize
                 else
                     moves
             else
@@ -278,23 +251,16 @@ module Scrabble =
                 []
         
         let startRightFromCoord coord = 
-            // debugPrint "going right \n"
             if checkValidStartField coord st State.Right then
                 move coord State.Right st.dict st.hand List.empty List.empty true coord
             else 
                 []
 
         findLongestWord (List.fold (fun acc coord -> 
-                // debugPrint (sprintf "Accumalator: %A - coord: %A \n" acc coord)
-                let above = startAboveCoord coord coord List.empty 
-                let left = startLeftOfCoord coord coord List.empty 
+                let above = startAboveCoord coord coord List.empty (MultiSet.size st.hand)
+                let left = startLeftOfCoord coord coord List.empty (MultiSet.size st.hand)
                 let down = startDownFromCoord coord 
                 let right = startRightFromCoord coord
-
-                // debugPrint (sprintf "above: %A\n" above)
-                // debugPrint (sprintf "left: %A\n" left)
-                // debugPrint (sprintf "down: %A\n" down)
-                // debugPrint (sprintf "right: %A\n" right)
 
                 acc @ left @ above @ down @ right
             ) List.Empty coords)
@@ -307,7 +273,6 @@ module Scrabble =
 
     let nextMove (st : State.state) pieces = 
         // check if it is the first move of the game
-        //let customHand = MultiSet.empty |> MultiSet.addSingle 8u |> MultiSet.addSingle 9u |> MultiSet.addSingle 20u
         if (Map.isEmpty st.placedTiles) then
             findMove [st.board.center] st pieces
         else
